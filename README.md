@@ -5,4 +5,4 @@
 1. Clone the repository
 2. Run `npm install` to install the dependencies
 3. Run `npm start` to start the server
-4. The server will run on `http://localhost:8000`
+4. The server will run on `http://localhost:8080/posts`
