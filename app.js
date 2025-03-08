@@ -1,43 +1,38 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-
-const { getStoredPosts, storePosts } = require('./data/posts');
+const express = require("express");
+const fs = require("node:fs/promises");
 
 const app = express();
+app.use(express.json());
 
-app.use(bodyParser.json());
+// Function to get stored posts
+async function getStoredPosts() {
+  try {
+    const rawFileContent = await fs.readFile("posts.json", "utf-8");
+    const data = JSON.parse(rawFileContent);
+    return data.posts ?? [];
+  } catch (error) {
+    return [];
+  }
+}
 
-app.use((req, res, next) => {
-	// Attach CORS headers
-	// Required when using a detached backend (that runs on a different domain)
-	res.setHeader('Access-Control-Allow-Origin', '*');
-	res.setHeader('Access-Control-Allow-Methods', 'GET,POST');
-	res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-	next();
+// Function to store posts
+function storePosts(posts) {
+  return fs.writeFile("posts.json", JSON.stringify({ posts: posts || [] }));
+}
+
+// API Route to get posts
+app.get("/posts", async (req, res) => {
+  const posts = await getStoredPosts();
+  res.json(posts);
 });
 
-app.get('/posts', async (req, res) => {
-	const storedPosts = await getStoredPosts();
-	// await new Promise((resolve, reject) => setTimeout(() => resolve(), 1500));
-	res.json({ posts: storedPosts });
+// Root route to check if the server is running
+app.get("/", (req, res) => {
+  res.send("Backend is working!");
 });
 
-app.get('/posts/:id', async (req, res) => {
-	const storedPosts = await getStoredPosts();
-	const post = storedPosts.find((post) => post.id === req.params.id);
-	res.json({ post });
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
-
-app.post('/posts', async (req, res) => {
-	const existingPosts = await getStoredPosts();
-	const postData = req.body;
-	const newPost = {
-		...postData,
-		id: Math.random().toString()
-	};
-	const updatedPosts = [newPost, ...existingPosts];
-	await storePosts(updatedPosts);
-	res.status(201).json({ message: 'Stored new post.', post: newPost });
-});
-
-app.listen(8080);
